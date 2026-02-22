@@ -8,14 +8,20 @@
   }
 
   body {
-    @apply antialiased;
+    @apply antialiased font-sans;
+    font-feature-settings: "kern" 1, "liga" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Smooth transitions for dark mode */
-  * {
-    transition-property: background-color, border-color, color, fill, stroke;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: var(--transition-duration);
+  input[type="number"],
+  select {
+    @apply transition-all duration-200;
+  }
+
+  input[type="number"]:focus,
+  select:focus {
+    @apply transform scale-[1.01];
   }
 }
 

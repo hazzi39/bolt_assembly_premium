@@ -128,8 +128,11 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
   const boltForces = calculateBoltForces();
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Bolt Pattern Layout</h3>
+    <div className="bg-gradient-to-br from-white to-slate-50 p-8">
+      <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
+        Bolt Pattern Layout
+      </h3>
       <div className="relative" style={{ width: `${width}px`, height: `${height}px` }}>
         {/* Grid lines or circle */}
         <svg
@@ -193,32 +196,34 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   cx={scaledX}
                   cy={scaledY}
                   r={boltDiameter * scale / 2}
-                  fill="#93c5fd"
-                  stroke="#1e40af"
+                  fill="url(#boltGradient)"
+                  stroke="#0ea5e9"
+                  strokeWidth="2.5"
+                  className="transition-all duration-300 hover:stroke-cyan-400"
                 />
                 <circle
                   cx={scaledX}
                   cy={scaledY}
-                  r={2}
-                  fill="#1e40af"
+                  r={3}
+                  fill="#0c4a6e"
                 />
                 
                 {/* Force values */}
                 <text
                   x={scaledX}
-                  y={scaledY - boltDiameter * scale / 2 - 5}
+                  y={scaledY - boltDiameter * scale / 2 - 8}
                   textAnchor="middle"
-                  fill="#1e40af"
-                  className="text-[11px] font-normal"
+                  fill="#0c4a6e"
+                  className="text-[10px] font-semibold"
                 >
                   V: {bolt.shear.toFixed(1)} kN
                 </text>
                 <text
                   x={scaledX}
-                  y={scaledY + boltDiameter * scale / 2 + 15}
+                  y={scaledY + boltDiameter * scale / 2 + 18}
                   textAnchor="middle"
-                  fill="#1e40af"
-                  className="text-[11px] font-normal"
+                  fill="#0c4a6e"
+                  className="text-[10px] font-semibold"
                 >
                   N: {bolt.tension.toFixed(1)} kN
                 </text>
@@ -243,8 +248,8 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   x={padding + ((numCols - 1) * colSpacing * scale) / 2}
                   y={20}
                   textAnchor="middle"
-                  fill="#1e40af"
-                  className="text-xs font-normal"
+                  fill="#0c4a6e"
+                  className="text-xs font-bold"
                 >
                   {((numCols - 1) * colSpacing).toFixed(0)} mm
                 </text>
@@ -264,8 +269,8 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   x={-20}
                   y={padding + ((numRows - 1) * rowSpacing * scale) / 2}
                   textAnchor="middle"
-                  fill="#1e40af"
-                  className="text-xs font-normal"
+                  fill="#0c4a6e"
+                  className="text-xs font-bold"
                   transform={`rotate(-90, -20, ${padding + ((numRows - 1) * rowSpacing * scale) / 2})`}
                 >
                   {((numRows - 1) * rowSpacing).toFixed(0)} mm
@@ -288,8 +293,8 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   x={padding + (diameter * scale) / 2}
                   y={20}
                   textAnchor="middle"
-                  fill="#1e40af"
-                  className="text-xs font-normal"
+                  fill="#0c4a6e"
+                  className="text-xs font-bold"
                 >
                   {diameter.toFixed(0)} mm
                 </text>
@@ -297,7 +302,7 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
             </>
           )}
 
-          {/* Arrow markers definition */}
+          {/* Arrow markers and gradients definition */}
           <defs>
             <marker
               id="arrowhead"
@@ -307,33 +312,40 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
               refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#1e40af" />
+              <polygon points="0 0, 10 3.5, 0 7" fill="#0c4a6e" />
             </marker>
+            <linearGradient id="boltGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#bfdbfe" />
+              <stop offset="100%" stopColor="#93c5fd" />
+            </linearGradient>
           </defs>
         </svg>
       </div>
 
       {/* Legend */}
-      <div className="mt-4 space-y-2">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-blue-200 border-2 border-blue-800"></div>
-          <span className="text-sm font-normal text-gray-600">Bolt hole (M{boltDiameter})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-0 border-t-2 border-dashed border-gray-300"></div>
-          <span className="text-sm font-normal text-gray-600">
-            {arrangement === 'rectangular' ? 'Center line' : 'Bolt circle'}
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-0 border-t-2 border-blue-800"></div>
-          <span className="text-sm font-normal text-gray-600">Dimension line</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-normal text-gray-600">V: Shear Force (kN)</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-normal text-gray-600">N: Tensile Force (kN)</span>
+      <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100 space-y-3">
+        <h4 className="text-sm font-bold text-slate-800 mb-3">Legend</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 border-2 border-cyan-500 shadow-sm"></div>
+            <span className="text-xs font-medium text-slate-700">Bolt hole (M{boltDiameter})</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-0 border-t-2 border-dashed border-slate-400"></div>
+            <span className="text-xs font-medium text-slate-700">
+              {arrangement === 'rectangular' ? 'Center line' : 'Bolt circle'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-0 border-t-2 border-blue-900"></div>
+            <span className="text-xs font-medium text-slate-700">Dimension line</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-semibold text-blue-700">V: Shear Force (kN)</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-semibold text-blue-700">N: Tensile Force (kN)</span>
+          </div>
         </div>
       </div>
     </div>
