@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface BoltPatternProps {
   arrangement: 'rectangular' | 'circular';
@@ -35,12 +35,9 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
   nt,
   pryingAllowance
 }) => {
-  const [hoveredBolt, setHoveredBolt] = useState<number | null>(null);
-  const [showLabels, setShowLabels] = useState(true);
-
   const boltDiameter = parseInt(boltSize.substring(1));
   const scale = 0.8;
-  const padding = 80;
+  const padding = 60;
   
   // Calculate dimensions based on arrangement
   const width = arrangement === 'rectangular'
@@ -130,28 +127,12 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
 
   const boltForces = calculateBoltForces();
 
-  const scaledSpacing = arrangement === 'rectangular'
-    ? Math.min(rowSpacing * scale, colSpacing * scale)
-    : (diameter * scale) / numBolts;
-  const showInlineLabels = scaledSpacing > 60;
-
-  const maxShear = Math.max(...boltForces.map(b => Math.abs(b.shear)));
-  const maxTension = Math.max(...boltForces.map(b => Math.abs(b.tension)));
-
   return (
     <div className="bg-gradient-to-br from-white to-slate-50 p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
-          Bolt Pattern Layout
-        </h3>
-        <button
-          onClick={() => setShowLabels(!showLabels)}
-          className="px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-200"
-        >
-          {showLabels ? 'Hide Labels' : 'Show Labels'}
-        </button>
-      </div>
+      <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
+        Bolt Pattern Layout
+      </h3>
       <div className="relative" style={{ width: `${width}px`, height: `${height}px` }}>
         {/* Grid lines or circle */}
         <svg
@@ -207,27 +188,18 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
           {boltForces.map((bolt, index) => {
             const scaledX = padding + bolt.x * scale;
             const scaledY = padding + bolt.y * scale;
-            const isHovered = hoveredBolt === index;
-
-            const shearText = `V: ${bolt.shear.toFixed(1)} kN`;
-            const tensionText = `N: ${bolt.tension.toFixed(1)} kN`;
-
+            
             return (
-              <g
-                key={`bolt-${index}`}
-                onMouseEnter={() => setHoveredBolt(index)}
-                onMouseLeave={() => setHoveredBolt(null)}
-                style={{ cursor: 'pointer' }}
-              >
+              <g key={`bolt-${index}`}>
                 {/* Bolt hole */}
                 <circle
                   cx={scaledX}
                   cy={scaledY}
                   r={boltDiameter * scale / 2}
-                  fill={isHovered ? "url(#boltGradientHover)" : "url(#boltGradient)"}
-                  stroke={isHovered ? "#06b6d4" : "#0ea5e9"}
-                  strokeWidth={isHovered ? "3" : "2.5"}
-                  className="transition-all duration-200"
+                  fill="url(#boltGradient)"
+                  stroke="#0ea5e9"
+                  strokeWidth="2.5"
+                  className="transition-all duration-300 hover:stroke-cyan-400"
                 />
                 <circle
                   cx={scaledX}
@@ -235,101 +207,26 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   r={3}
                   fill="#0c4a6e"
                 />
-
-                {/* Force values with backgrounds */}
-                {showLabels && showInlineLabels && (
-                  <>
-                    {/* Shear force label */}
-                    <rect
-                      x={scaledX - 30}
-                      y={scaledY - boltDiameter * scale / 2 - 22}
-                      width={60}
-                      height={16}
-                      rx={4}
-                      fill="rgba(255, 255, 255, 0.95)"
-                      stroke="#0ea5e9"
-                      strokeWidth="1"
-                      className="drop-shadow-sm"
-                    />
-                    <text
-                      x={scaledX}
-                      y={scaledY - boltDiameter * scale / 2 - 11}
-                      textAnchor="middle"
-                      fill="#0c4a6e"
-                      className="text-[11px] font-bold"
-                      style={{ fontFamily: 'monospace' }}
-                    >
-                      {shearText}
-                    </text>
-
-                    {/* Tension force label */}
-                    <rect
-                      x={scaledX - 30}
-                      y={scaledY + boltDiameter * scale / 2 + 6}
-                      width={60}
-                      height={16}
-                      rx={4}
-                      fill="rgba(255, 255, 255, 0.95)"
-                      stroke="#0ea5e9"
-                      strokeWidth="1"
-                      className="drop-shadow-sm"
-                    />
-                    <text
-                      x={scaledX}
-                      y={scaledY + boltDiameter * scale / 2 + 17}
-                      textAnchor="middle"
-                      fill="#0c4a6e"
-                      className="text-[11px] font-bold"
-                      style={{ fontFamily: 'monospace' }}
-                    >
-                      {tensionText}
-                    </text>
-                  </>
-                )}
-
-                {/* Tooltip on hover */}
-                {isHovered && (
-                  <>
-                    <rect
-                      x={scaledX + 15}
-                      y={scaledY - 30}
-                      width={100}
-                      height={48}
-                      rx={6}
-                      fill="#1e293b"
-                      stroke="#0ea5e9"
-                      strokeWidth="2"
-                      className="drop-shadow-lg"
-                    />
-                    <text
-                      x={scaledX + 65}
-                      y={scaledY - 15}
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      className="text-[11px] font-bold"
-                    >
-                      Bolt {index + 1}
-                    </text>
-                    <text
-                      x={scaledX + 65}
-                      y={scaledY - 2}
-                      textAnchor="middle"
-                      fill="#93c5fd"
-                      className="text-[10px] font-semibold"
-                    >
-                      {shearText}
-                    </text>
-                    <text
-                      x={scaledX + 65}
-                      y={scaledY + 11}
-                      textAnchor="middle"
-                      fill="#93c5fd"
-                      className="text-[10px] font-semibold"
-                    >
-                      {tensionText}
-                    </text>
-                  </>
-                )}
+                
+                {/* Force values */}
+                <text
+                  x={scaledX}
+                  y={scaledY - boltDiameter * scale / 2 - 8}
+                  textAnchor="middle"
+                  fill="#0c4a6e"
+                  className="text-[10px] font-semibold"
+                >
+                  V: {bolt.shear.toFixed(1)} kN
+                </text>
+                <text
+                  x={scaledX}
+                  y={scaledY + boltDiameter * scale / 2 + 18}
+                  textAnchor="middle"
+                  fill="#0c4a6e"
+                  className="text-[10px] font-semibold"
+                >
+                  N: {bolt.tension.toFixed(1)} kN
+                </text>
               </g>
             );
           })}
@@ -421,95 +318,8 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
               <stop offset="0%" stopColor="#bfdbfe" />
               <stop offset="100%" stopColor="#93c5fd" />
             </linearGradient>
-            <linearGradient id="boltGradientHover" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#67e8f9" />
-              <stop offset="100%" stopColor="#22d3ee" />
-            </linearGradient>
           </defs>
         </svg>
-      </div>
-
-      {/* Bolt Forces Data Table */}
-      <div className="mt-8">
-        <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
-          Bolt Forces Summary
-        </h4>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Bolt #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Position (mm)
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Shear Force (kN)
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Tensile Force (kN)
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
-              {boltForces.map((bolt, index) => {
-                const centerX = arrangement === 'rectangular' ? ((numCols - 1) * colSpacing) / 2 : diameter / 2;
-                const centerY = arrangement === 'rectangular' ? ((numRows - 1) * rowSpacing) / 2 : diameter / 2;
-                const relX = bolt.x - centerX;
-                const relY = bolt.y - centerY;
-
-                const isMaxShear = Math.abs(bolt.shear - maxShear) < 0.01;
-                const isMaxTension = Math.abs(bolt.tension - maxTension) < 0.01;
-
-                return (
-                  <tr
-                    key={index}
-                    className={`transition-colors duration-150 ${
-                      hoveredBolt === index ? 'bg-blue-100' : 'hover:bg-blue-50/50'
-                    }`}
-                    onMouseEnter={() => setHoveredBolt(index)}
-                    onMouseLeave={() => setHoveredBolt(null)}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-blue-700">
-                      {index + 1}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 font-mono">
-                      ({relX.toFixed(0)}, {relY.toFixed(0)})
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold text-right ${
-                      isMaxShear ? 'text-red-600 font-bold' : 'text-slate-700'
-                    }`}>
-                      {bolt.shear.toFixed(2)}
-                      {isMaxShear && <span className="ml-1 text-xs">MAX</span>}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold text-right ${
-                      isMaxTension ? 'text-red-600 font-bold' : 'text-slate-700'
-                    }`}>
-                      {bolt.tension.toFixed(2)}
-                      {isMaxTension && <span className="ml-1 text-xs">MAX</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
-                      {(isMaxShear || isMaxTension) ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Critical
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          OK
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Legend */}
