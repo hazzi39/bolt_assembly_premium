@@ -14,6 +14,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  @font-face {
+    font-family: 'Arial Narrow';
+    src: local('Arial Narrow'), local('ArialNarrow');
+    font-stretch: condensed;
+  }
+
   input[type="number"],
   select {
     @apply transition-all duration-200;

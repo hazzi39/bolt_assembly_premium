@@ -128,9 +128,9 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
   const boltForces = calculateBoltForces();
 
   return (
-    <div className="bg-gradient-to-br from-white to-slate-50 p-8">
-      <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-        <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
+    <div className="bg-gradient-to-br from-white to-slate-50 p-5">
+      <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
         Bolt Pattern Layout
       </h3>
       <div className="relative" style={{ width: `${width}px`, height: `${height}px` }}>
@@ -214,18 +214,20 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
                   y={scaledY - boltDiameter * scale / 2 - 8}
                   textAnchor="middle"
                   fill="#0c4a6e"
-                  className="text-[10px] font-semibold"
+                  className="text-[9px] font-semibold"
+                  style={{ fontFamily: 'Arial Narrow, Arial, sans-serif', fontStretch: 'condensed' }}
                 >
-                  V: {bolt.shear.toFixed(1)} kN
+                  V:{bolt.shear.toFixed(1)}
                 </text>
                 <text
                   x={scaledX}
                   y={scaledY + boltDiameter * scale / 2 + 18}
                   textAnchor="middle"
                   fill="#0c4a6e"
-                  className="text-[10px] font-semibold"
+                  className="text-[9px] font-semibold"
+                  style={{ fontFamily: 'Arial Narrow, Arial, sans-serif', fontStretch: 'condensed' }}
                 >
-                  N: {bolt.tension.toFixed(1)} kN
+                  N:{bolt.tension.toFixed(1)}
                 </text>
               </g>
             );
@@ -323,28 +325,22 @@ const BoltPattern: React.FC<BoltPatternProps> = ({
       </div>
 
       {/* Legend */}
-      <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100 space-y-3">
-        <h4 className="text-sm font-bold text-slate-800 mb-3">Legend</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 border-2 border-cyan-500 shadow-sm"></div>
-            <span className="text-xs font-medium text-slate-700">Bolt hole (M{boltDiameter})</span>
+      <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+        <h4 className="text-xs font-bold text-slate-800 mb-2">Legend</h4>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 border-2 border-cyan-500"></div>
+            <span className="font-medium text-slate-700">M{boltDiameter} hole</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-0 border-t-2 border-dashed border-slate-400"></div>
-            <span className="text-xs font-medium text-slate-700">
-              {arrangement === 'rectangular' ? 'Center line' : 'Bolt circle'}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-0 border-t-2 border-dashed border-slate-400"></div>
+            <span className="font-medium text-slate-700">{arrangement === 'rectangular' ? 'Centerline' : 'Circle'}</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-0 border-t-2 border-blue-900"></div>
-            <span className="text-xs font-medium text-slate-700">Dimension line</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-blue-700">V: Shear (kN)</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs font-semibold text-blue-700">V: Shear Force (kN)</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs font-semibold text-blue-700">N: Tensile Force (kN)</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-blue-700">N: Tension (kN)</span>
           </div>
         </div>
       </div>
