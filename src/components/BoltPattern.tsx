@@ -1,355 +1,256 @@
-import React from 'react';
+import { CalculationResult, InputState } from '../App';
 
 interface BoltPatternProps {
-  arrangement: 'rectangular' | 'circular';
-  numRows: number;
-  numCols: number;
-  rowSpacing: number;
-  colSpacing: number;
-  diameter: number;
-  numBolts: number;
-  boltSize: string;
-  vx: number;
-  vy: number;
-  tb: number;
-  mb: number;
-  mm: number;
-  nt: number;
-  pryingAllowance: number;
+  inputs: InputState;
+  result: CalculationResult | null;
+  isValid: boolean;
 }
 
-const BoltPattern: React.FC<BoltPatternProps> = ({
-  arrangement,
-  numRows,
-  numCols,
-  rowSpacing,
-  colSpacing,
-  diameter,
-  numBolts,
-  boltSize,
-  vx,
-  vy,
-  tb,
-  mb,
-  mm,
-  nt,
-  pryingAllowance
-}) => {
-  const boltDiameter = parseInt(boltSize.substring(1));
-  const scale = 0.8;
-  const padding = 60;
-  
-  // Calculate dimensions based on arrangement
-  const width = arrangement === 'rectangular'
-    ? (colSpacing * (numCols - 1)) * scale + 2 * padding
-    : diameter * scale + 2 * padding;
-  const height = arrangement === 'rectangular'
-    ? (rowSpacing * (numRows - 1)) * scale + 2 * padding
-    : diameter * scale + 2 * padding;
+const VIEW_WIDTH = 560;
+const VIEW_HEIGHT = 380;
 
-  // Calculate bolt positions and forces
-  const calculateBoltForces = () => {
-    const positions: { x: number; y: number; shear: number; tension: number }[] = [];
-    let ibp = 0;
-    const totalBolts = arrangement === 'rectangular' ? numRows * numCols : numBolts;
-    
-    if (arrangement === 'rectangular') {
-      const centerX = ((numCols - 1) * colSpacing) / 2;
-      const centerY = ((numRows - 1) * rowSpacing) / 2;
-      
-      // Calculate Ibp first
-      for (let row = 0; row < numRows; row++) {
-        for (let col = 0; col < numCols; col++) {
-          const x = col * colSpacing - centerX;
-          const y = row * rowSpacing - centerY;
-          ibp += x * x + y * y;
-        }
-      }
-      
-      // Calculate forces for each bolt
-      for (let row = 0; row < numRows; row++) {
-        for (let col = 0; col < numCols; col++) {
-          const x = col * colSpacing - centerX;
-          const y = row * rowSpacing - centerY;
-          
-          // Calculate forces
-          const shearX = (-vx * 1000 / totalBolts) + ((-tb * 1e6) * y / ibp);
-          const shearY = (-vy * 1000 / totalBolts) + ((-tb * 1e6) * x / ibp);
-          const totalShear = Math.sqrt(shearX * shearX + shearY * shearY) / 1000;
-          
-          const ym = (numRows * rowSpacing) / 2;
-          const xm = (numCols * colSpacing) / 2;
-          const majorAxisForce = (mb * 1e6 * y) / (2 * ym * ym);
-          const minorAxisForce = (mm * 1e6 * x) / (2 * xm * xm);
-          const pureAxialForce = nt * 1000 / totalBolts;
-          const totalTension = pryingAllowance * (pureAxialForce + majorAxisForce + minorAxisForce) / 1000;
-          
-          positions.push({
-            x: col * colSpacing,
-            y: row * rowSpacing,
-            shear: totalShear,
-            tension: totalTension
-          });
-        }
-      }
-    } else {
-      // Circular arrangement
-      const radius = diameter / 2;
-      ibp = totalBolts * radius * radius;
-      const angleIncrement = (2 * Math.PI) / totalBolts;
-      
-      for (let i = 0; i < totalBolts; i++) {
-        const angle = i * angleIncrement;
-        const x = radius * Math.cos(angle);
-        const y = radius * Math.sin(angle);
-        
-        // Calculate forces
-        const shearX = (-vx * 1000 / totalBolts) + ((-tb * 1e6) * y / ibp);
-        const shearY = (-vy * 1000 / totalBolts) + ((-tb * 1e6) * x / ibp);
-        const totalShear = Math.sqrt(shearX * shearX + shearY * shearY) / 1000;
-        
-        const majorAxisForce = (mb * 1e6 * y) / (2 * radius * radius);
-        const minorAxisForce = (mm * 1e6 * x) / (2 * radius * radius);
-        const pureAxialForce = nt * 1000 / totalBolts;
-        const totalTension = pryingAllowance * (pureAxialForce + majorAxisForce + minorAxisForce) / 1000;
-        
-        positions.push({
-          x: x + radius,
-          y: y + radius,
-          shear: totalShear,
-          tension: totalTension
-        });
-      }
-    }
-    
-    return positions;
-  };
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-  const boltForces = calculateBoltForces();
+function BoltPattern({ inputs, result, isValid }: BoltPatternProps) {
+  if (!isValid || !result) {
+    return (
+      <div className="diagram-empty">
+        <p>Enter valid geometry and loading values to generate the live bolt-group visualisation.</p>
+      </div>
+    );
+  }
+
+  const demands = result.boltDemands;
+  const maxAbsX = Math.max(...demands.map((demand) => Math.abs(demand.x)), 1);
+  const maxAbsY = Math.max(...demands.map((demand) => Math.abs(demand.y)), 1);
+  const extentsX = maxAbsX + 110;
+  const extentsY = maxAbsY + 110;
+  const scale = Math.min((VIEW_WIDTH - 140) / (2 * extentsX), (VIEW_HEIGHT - 120) / (2 * extentsY));
+  const centerX = VIEW_WIDTH / 2;
+  const centerY = VIEW_HEIGHT / 2;
+  const boltRadius = clamp((Number(inputs.boltSize.slice(1)) / 2) * scale, 7, 16);
+  const maxShear = Math.max(...demands.map((demand) => demand.shear), 1);
+  const maxTension = Math.max(...demands.map((demand) => demand.tension), 1);
+
+  const toSvg = (x: number, y: number) => ({
+    x: centerX + x * scale,
+    y: centerY - y * scale,
+  });
+
+  const rectangularSpanX =
+    inputs.arrangement === 'rectangular'
+      ? (Number(inputs.numCols) - 1) * Number(inputs.colSpacing)
+      : 0;
+  const rectangularSpanY =
+    inputs.arrangement === 'rectangular'
+      ? (Number(inputs.numRows) - 1) * Number(inputs.rowSpacing)
+      : 0;
+  const circularRadius = inputs.arrangement === 'circular' ? Number(inputs.diameter) / 2 : 0;
 
   return (
-    <div className="bg-gradient-to-br from-white to-slate-50 p-8">
-      <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-        <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full"></div>
-        Bolt Pattern Layout
-      </h3>
-      <div className="relative" style={{ width: `${width}px`, height: `${height}px` }}>
-        {/* Grid lines or circle */}
-        <svg
-          width={width}
-          height={height}
-          className="absolute top-0 left-0"
-          style={{ strokeWidth: '1px', stroke: '#e5e7eb' }}
-        >
-          {arrangement === 'rectangular' ? (
-            <>
-              {/* Vertical grid lines */}
-              {Array.from({ length: numCols }).map((_, col) => (
-                <line
-                  key={`v-${col}`}
-                  x1={padding + col * colSpacing * scale}
-                  y1={0}
-                  x2={padding + col * colSpacing * scale}
-                  y2={height}
-                  strokeDasharray="4"
-                />
-              ))}
-              {/* Horizontal grid lines */}
-              {Array.from({ length: numRows }).map((_, row) => (
-                <line
-                  key={`h-${row}`}
-                  x1={0}
-                  y1={padding + row * rowSpacing * scale}
-                  x2={width}
-                  y2={padding + row * rowSpacing * scale}
-                  strokeDasharray="4"
-                />
-              ))}
-            </>
-          ) : (
-            <circle
-              cx={width / 2}
-              cy={height / 2}
-              r={diameter * scale / 2}
-              fill="none"
-              strokeDasharray="4"
+    <div className="diagram-shell">
+      <svg viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`} className="diagram-canvas" role="img">
+        <defs>
+          <pattern id="gridPattern" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(58, 110, 130, 0.08)" strokeWidth="1" />
+          </pattern>
+          <marker id="loadArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f766e" />
+          </marker>
+          <marker id="dimensionArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b6470" />
+          </marker>
+        </defs>
+
+        <rect x="0" y="0" width={VIEW_WIDTH} height={VIEW_HEIGHT} rx="22" fill="url(#gridPattern)" />
+
+        <line
+          x1="48"
+          y1={centerY}
+          x2={VIEW_WIDTH - 48}
+          y2={centerY}
+          stroke="#b9c9cf"
+          strokeWidth="1.2"
+          strokeDasharray="4 5"
+        />
+        <line
+          x1={centerX}
+          y1="34"
+          x2={centerX}
+          y2={VIEW_HEIGHT - 34}
+          stroke="#b9c9cf"
+          strokeWidth="1.2"
+          strokeDasharray="4 5"
+        />
+        <text x={centerX + 8} y="48" className="diagram-axis-label">
+          y
+        </text>
+        <text x={VIEW_WIDTH - 56} y={centerY - 8} className="diagram-axis-label">
+          x
+        </text>
+
+        {inputs.arrangement === 'rectangular' ? (
+          <rect
+            x={centerX - (rectangularSpanX / 2) * scale - 28}
+            y={centerY - (rectangularSpanY / 2) * scale - 28}
+            width={rectangularSpanX * scale + 56}
+            height={rectangularSpanY * scale + 56}
+            rx="18"
+            fill="rgba(255,255,255,0.7)"
+            stroke="#cad7dc"
+            strokeWidth="1.2"
+          />
+        ) : (
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={circularRadius * scale + 28}
+            fill="rgba(255,255,255,0.7)"
+            stroke="#cad7dc"
+            strokeWidth="1.2"
+          />
+        )}
+
+        {demands.map((demand, index) => {
+          const position = toSvg(demand.x, demand.y);
+          const vectorScale = 34 / maxShear;
+          const endX = position.x + demand.shearX * vectorScale;
+          const endY = position.y - demand.shearY * vectorScale;
+          const halo = clamp((demand.tension / maxTension) * 10, 0, 10);
+
+          return (
+            <g key={`bolt-${index}`}>
+              <circle
+                cx={position.x}
+                cy={position.y}
+                r={boltRadius + halo}
+                fill="rgba(14, 165, 233, 0.10)"
+                stroke="rgba(14, 165, 233, 0.18)"
+              />
+              <circle
+                cx={position.x}
+                cy={position.y}
+                r={boltRadius}
+                fill="#fdfefe"
+                stroke="#1696c7"
+                strokeWidth="2"
+              />
+              <circle cx={position.x} cy={position.y} r="2.5" fill="#0f4c5c" />
+              <line
+                x1={position.x}
+                y1={position.y}
+                x2={endX}
+                y2={endY}
+                stroke="#0f766e"
+                strokeWidth="1.8"
+                markerEnd="url(#loadArrow)"
+              />
+              <text x={position.x + 10} y={position.y - 10} className="diagram-bolt-label">
+                B{index + 1}
+              </text>
+            </g>
+          );
+        })}
+
+        <circle cx={centerX} cy={centerY} r="5" fill="#1d4ed8" />
+        <text x={centerX + 10} y={centerY + 16} className="diagram-centroid-label">
+          C.G.
+        </text>
+
+        {inputs.arrangement === 'rectangular' ? (
+          <>
+            <line
+              x1={centerX - (rectangularSpanX / 2) * scale}
+              y1={VIEW_HEIGHT - 34}
+              x2={centerX + (rectangularSpanX / 2) * scale}
+              y2={VIEW_HEIGHT - 34}
+              stroke="#4b6470"
+              strokeWidth="1.4"
+              markerStart="url(#dimensionArrow)"
+              markerEnd="url(#dimensionArrow)"
             />
-          )}
-        </svg>
-
-        {/* Bolts and dimensions */}
-        <svg
-          width={width}
-          height={height}
-          className="absolute top-0 left-0"
-          style={{ strokeWidth: '2px', stroke: '#1e40af' }}
-        >
-          {/* Bolt holes with force indicators */}
-          {boltForces.map((bolt, index) => {
-            const scaledX = padding + bolt.x * scale;
-            const scaledY = padding + bolt.y * scale;
-            
-            return (
-              <g key={`bolt-${index}`}>
-                {/* Bolt hole */}
-                <circle
-                  cx={scaledX}
-                  cy={scaledY}
-                  r={boltDiameter * scale / 2}
-                  fill="url(#boltGradient)"
-                  stroke="#0ea5e9"
-                  strokeWidth="2.5"
-                  className="transition-all duration-300 hover:stroke-cyan-400"
-                />
-                <circle
-                  cx={scaledX}
-                  cy={scaledY}
-                  r={3}
-                  fill="#0c4a6e"
-                />
-                
-                {/* Force values */}
-                <text
-                  x={scaledX}
-                  y={scaledY - boltDiameter * scale / 2 - 8}
-                  textAnchor="middle"
-                  fill="#0c4a6e"
-                  className="text-[10px] font-semibold"
-                >
-                  V: {bolt.shear.toFixed(1)} kN
-                </text>
-                <text
-                  x={scaledX}
-                  y={scaledY + boltDiameter * scale / 2 + 18}
-                  textAnchor="middle"
-                  fill="#0c4a6e"
-                  className="text-[10px] font-semibold"
-                >
-                  N: {bolt.tension.toFixed(1)} kN
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Dimensions */}
-          {arrangement === 'rectangular' ? (
-            <>
-              {/* Horizontal dimensions */}
-              <g transform={`translate(0, ${height - 20})`}>
-                <line
-                  x1={padding}
-                  y1={0}
-                  x2={padding + (numCols - 1) * colSpacing * scale}
-                  y2={0}
-                  markerEnd="url(#arrowhead)"
-                  markerStart="url(#arrowhead)"
-                />
-                <text
-                  x={padding + ((numCols - 1) * colSpacing * scale) / 2}
-                  y={20}
-                  textAnchor="middle"
-                  fill="#0c4a6e"
-                  className="text-xs font-bold"
-                >
-                  {((numCols - 1) * colSpacing).toFixed(0)} mm
-                </text>
-              </g>
-
-              {/* Vertical dimensions */}
-              <g transform={`translate(${width - 20}, 0)`}>
-                <line
-                  x1={0}
-                  y1={padding}
-                  x2={0}
-                  y2={padding + (numRows - 1) * rowSpacing * scale}
-                  markerEnd="url(#arrowhead)"
-                  markerStart="url(#arrowhead)"
-                />
-                <text
-                  x={-20}
-                  y={padding + ((numRows - 1) * rowSpacing * scale) / 2}
-                  textAnchor="middle"
-                  fill="#0c4a6e"
-                  className="text-xs font-bold"
-                  transform={`rotate(-90, -20, ${padding + ((numRows - 1) * rowSpacing * scale) / 2})`}
-                >
-                  {((numRows - 1) * rowSpacing).toFixed(0)} mm
-                </text>
-              </g>
-            </>
-          ) : (
-            <>
-              {/* Diameter dimension */}
-              <g transform={`translate(0, ${height - 20})`}>
-                <line
-                  x1={padding}
-                  y1={0}
-                  x2={padding + diameter * scale}
-                  y2={0}
-                  markerEnd="url(#arrowhead)"
-                  markerStart="url(#arrowhead)"
-                />
-                <text
-                  x={padding + (diameter * scale) / 2}
-                  y={20}
-                  textAnchor="middle"
-                  fill="#0c4a6e"
-                  className="text-xs font-bold"
-                >
-                  {diameter.toFixed(0)} mm
-                </text>
-              </g>
-            </>
-          )}
-
-          {/* Arrow markers and gradients definition */}
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
+            <text x={centerX} y={VIEW_HEIGHT - 12} textAnchor="middle" className="diagram-dimension-label">
+              {(rectangularSpanX || 0).toFixed(0)} mm
+            </text>
+            <line
+              x1={VIEW_WIDTH - 34}
+              y1={centerY - (rectangularSpanY / 2) * scale}
+              x2={VIEW_WIDTH - 34}
+              y2={centerY + (rectangularSpanY / 2) * scale}
+              stroke="#4b6470"
+              strokeWidth="1.4"
+              markerStart="url(#dimensionArrow)"
+              markerEnd="url(#dimensionArrow)"
+            />
+            <text
+              x={VIEW_WIDTH - 16}
+              y={centerY}
+              textAnchor="middle"
+              className="diagram-dimension-label"
+              transform={`rotate(90 ${VIEW_WIDTH - 16} ${centerY})`}
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#0c4a6e" />
-            </marker>
-            <linearGradient id="boltGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#bfdbfe" />
-              <stop offset="100%" stopColor="#93c5fd" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
+              {(rectangularSpanY || 0).toFixed(0)} mm
+            </text>
+          </>
+        ) : (
+          <>
+            <line
+              x1={centerX - circularRadius * scale}
+              y1={VIEW_HEIGHT - 34}
+              x2={centerX + circularRadius * scale}
+              y2={VIEW_HEIGHT - 34}
+              stroke="#4b6470"
+              strokeWidth="1.4"
+              markerStart="url(#dimensionArrow)"
+              markerEnd="url(#dimensionArrow)"
+            />
+            <text x={centerX} y={VIEW_HEIGHT - 12} textAnchor="middle" className="diagram-dimension-label">
+              {Number(inputs.diameter).toFixed(0)} mm
+            </text>
+          </>
+        )}
 
-      {/* Legend */}
-      <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100 space-y-3">
-        <h4 className="text-sm font-bold text-slate-800 mb-3">Legend</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 border-2 border-cyan-500 shadow-sm"></div>
-            <span className="text-xs font-medium text-slate-700">Bolt hole (M{boltDiameter})</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-0 border-t-2 border-dashed border-slate-400"></div>
-            <span className="text-xs font-medium text-slate-700">
-              {arrangement === 'rectangular' ? 'Center line' : 'Bolt circle'}
-            </span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-0 border-t-2 border-blue-900"></div>
-            <span className="text-xs font-medium text-slate-700">Dimension line</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs font-semibold text-blue-700">V: Shear Force (kN)</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-xs font-semibold text-blue-700">N: Tensile Force (kN)</span>
-          </div>
+        <g className="diagram-load-set">
+          <line x1="72" y1="72" x2="122" y2="72" stroke="#0f766e" strokeWidth="1.8" markerEnd="url(#loadArrow)" />
+          <text x="64" y="62" className="diagram-load-label">
+            Vx {Number(inputs.vx).toFixed(1)} kN
+          </text>
+          <line x1="72" y1="72" x2="72" y2="124" stroke="#0f766e" strokeWidth="1.8" markerEnd="url(#loadArrow)" />
+          <text x="84" y="112" className="diagram-load-label">
+            Vy {Number(inputs.vy).toFixed(1)} kN
+          </text>
+          <path
+            d="M 112 128 A 24 24 0 1 1 74 110"
+            fill="none"
+            stroke="#1d4ed8"
+            strokeWidth="1.8"
+            markerEnd="url(#loadArrow)"
+          />
+          <text x="118" y="118" className="diagram-load-label">
+            Tb {Number(inputs.tb).toFixed(1)} kNm
+          </text>
+          <text x="72" y="154" className="diagram-load-label">
+            Nt {Number(inputs.nt).toFixed(1)} kN
+          </text>
+        </g>
+      </svg>
+
+      <div className="diagram-legend">
+        <div className="legend-item">
+          <span className="legend-swatch bolt" />
+          <span>Bolt position and nominal hole marker</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-swatch vector" />
+          <span>Per-bolt shear vector</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-swatch halo" />
+          <span>Tension intensity halo</span>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default BoltPattern;
